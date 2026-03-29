@@ -1,17 +1,48 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { PlusCircle, TrendingUp, DollarSign, BrainCircuit, Target, AlertTriangle, Wallet, ScanLine } from 'lucide-react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { 
+  PlusCircle, 
+  TrendingUp, 
+  DollarSign, 
+  BrainCircuit, 
+  Target, 
+  AlertTriangle, 
+  Wallet, 
+  ScanLine, 
+  ArrowUpRight, 
+  Zap, 
+  ChevronRight,
+  TrendingDown,
+  ShoppingBag,
+  Coffee,
+  Home,
+  Bus,
+  Tv,
+  HelpCircle,
+  Sparkles
+} from 'lucide-react'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts'
 import { Html5QrcodeScanner } from 'html5-qrcode'
 import './index.css'
 
 const API_BASE = 'http://localhost:8000'
 
+const getCategoryIcon = (category) => {
+  switch (category) {
+    case 'Food & Dining': return <Coffee size={18} />;
+    case 'Shopping': return <ShoppingBag size={18} />;
+    case 'Housing & Utilities': return <Home size={18} />;
+    case 'Transportation': return <Bus size={18} />;
+    case 'Entertainment': return <Tv size={18} />;
+    default: return <HelpCircle size={18} />;
+  }
+}
+
 export default function Dashboard() {
   const [expenses, setExpenses] = useState([])
   const [insights, setInsights] = useState({ total_spent: 0, predicted_next_month: 0, advice: "" })
   const [profile, setProfile] = useState({ target_amount: 0, next_month_deduction: 0 })
-  const [activeTab, setActiveTab] = useState('manual')
+  const [activeTab, setActiveTab] = useState('')
   const [filterCategory, setFilterCategory] = useState('All')
   const [form, setForm] = useState({ amount: "", category: "", date: "", description: "", is_urgent: false, upiId: "", upiApp: "generic" })
   const [budgetInput, setBudgetInput] = useState("")
@@ -20,11 +51,9 @@ export default function Dashboard() {
   useEffect(() => {
     if (isScanning) {
       const scanner = new Html5QrcodeScanner('qr-reader', { fps: 10, qrbox: { width: 250, height: 250 } }, false)
-      
       const onScanSuccess = (decodedText) => {
         scanner.clear()
         setIsScanning(false)
-        
         try {
           const url = new URL(decodedText)
           if (url.protocol.startsWith('upi')) {
@@ -38,48 +67,28 @@ export default function Dashboard() {
           if (decodedText.includes('@')) setForm(prev => ({ ...prev, upiId: decodedText }))
         }
       }
-
       scanner.render(onScanSuccess, console.warn)
-
-      return () => {
-        scanner.clear().catch(e => console.error("Failed to clear scanner", e))
-      }
+      return () => scanner.clear().catch(e => console.error("Failed to clear scanner", e))
     }
   }, [isScanning])
 
-  const fetchExpenses = async () => {
+  const fetchData = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/expenses/`)
-      setExpenses(res.data)
+      const [expRes, insRes, profRes] = await Promise.all([
+        axios.get(`${API_BASE}/expenses/`),
+        axios.get(`${API_BASE}/insights/`),
+        axios.get(`${API_BASE}/profile/`)
+      ])
+      setExpenses(expRes.data)
+      setInsights(insRes.data)
+      setProfile(profRes.data)
+      setBudgetInput(profRes.data.target_amount || "")
     } catch (err) {
-      console.error("Failed to fetch expenses", err)
+      console.error("Failed to fetch data", err)
     }
   }
 
-  const fetchInsights = async () => {
-    try {
-      const res = await axios.get(`${API_BASE}/insights/`)
-      setInsights(res.data)
-    } catch (err) {
-      console.error("Failed to fetch insights", err)
-    }
-  }
-
-  const fetchProfile = async () => {
-    try {
-      const res = await axios.get(`${API_BASE}/profile/`)
-      setProfile(res.data)
-      setBudgetInput(res.data.target_amount || "")
-    } catch (err) {
-      console.error("Failed to fetch profile", err)
-    }
-  }
-
-  useEffect(() => {
-    fetchExpenses()
-    fetchInsights()
-    fetchProfile()
-  }, [])
+  useEffect(() => { fetchData() }, [])
 
   const effectiveBudget = (profile.target_amount || 0) - (profile.next_month_deduction || 0)
   const currentMonth = new Date().toISOString().slice(0, 7)
@@ -89,12 +98,10 @@ export default function Dashboard() {
   const today = new Date()
   const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
   const daysLeft = lastDayOfMonth.getDate() - today.getDate()
-  const safeToSpendPerDay = daysLeft > 0 ? remainingBudget / daysLeft : remainingBudget
 
   const handleManualSubmit = async (e) => {
     e.preventDefault()
     if (!form.amount || !form.description) return
-
     try {
       await axios.post(`${API_BASE}/expenses/`, {
         amount: parseFloat(form.amount),
@@ -104,15 +111,10 @@ export default function Dashboard() {
         is_urgent: form.is_urgent
       })
       setForm({ amount: "", category: "", date: "", description: "", is_urgent: false, upiId: "", upiApp: "generic" })
-      fetchExpenses()
-      fetchInsights()
-      fetchProfile()
+      setActiveTab('')
+      fetchData()
     } catch (err) {
-      if (err.response && err.response.data && err.response.data.detail) {
-        alert(err.response.data.detail)
-      } else {
-        console.error("Failed to add expense", err)
-      }
+      alert(err.response?.data?.detail || "Failed to add expense")
     }
   }
 
@@ -121,262 +123,214 @@ export default function Dashboard() {
     if (!form.amount || !form.description || !form.upiId) return
     const parsedAmount = parseFloat(form.amount)
     let urgentFlag = false
-
     if (profile.target_amount > 0 && (thisMonthSpent + parsedAmount > effectiveBudget)) {
-      const consent = window.confirm(`⚠️ BUDGET LIMIT EXCEEDED!\n\nThis payment of ₹${parsedAmount} exceeds your remaining budget of ₹${remainingBudget.toFixed(2)}.\n\nDo you want to process this payment as URGENT and deduct the overage from NEXT month's budget?`)
+      const consent = window.confirm(`⚠️ BUDGET LIMIT EXCEEDED!\nDeduct the overage from NEXT month's budget?`)
       if (!consent) return
       urgentFlag = true
     }
-
     try {
       await axios.post(`${API_BASE}/expenses/`, {
         amount: parsedAmount,
         category: "",
-        date: new Date().toISOString().split('T')[0], // Default to today
+        date: new Date().toISOString().split('T')[0],
         description: `UPI to ${form.upiId}: ${form.description}`,
         is_urgent: urgentFlag
       })
-
-      alert("Expense logged automatically. Attempting to open UPI app to complete payment...")
-
       const params = `pa=${form.upiId}&pn=${encodeURIComponent("Expense Coach Payment")}&am=${parsedAmount}&cu=INR&tn=${encodeURIComponent(form.description)}`
-      let upiLink = `upi://pay?${params}`
-      if (form.upiApp === 'gpay') upiLink = `tez://upi/pay?${params}`
-      else if (form.upiApp === 'phonepe') upiLink = `phonepe://pay?${params}`
-      else if (form.upiApp === 'paytm') upiLink = `paytmmp://pay?${params}`
-      else if (form.upiApp === 'bhim') upiLink = `bhim://pay?${params}`
-
-      window.location.href = upiLink // Will trigger app on mobile
-
+      window.location.href = form.upiApp === 'gpay' ? `tez://upi/pay?${params}` : `upi://pay?${params}`
       setForm({ amount: "", category: "", date: "", description: "", is_urgent: false, upiId: "", upiApp: "generic" })
-      fetchExpenses()
-      fetchInsights()
-      fetchProfile()
+      setActiveTab('')
+      fetchData()
     } catch (err) {
-      if (err.response && err.response.data && err.response.data.detail) {
-        alert(err.response.data.detail)
-      } else {
-        console.error("Failed to add expense", err)
-      }
+      alert(err.response?.data?.detail || "Failed to process UPI")
     }
   }
 
-  const handleUpdateBudget = async () => {
-    try {
-      await axios.post(`${API_BASE}/budget/`, { target_amount: parseFloat(budgetInput) || 0 })
-      alert("Budget target updated!")
-      fetchProfile()
-    } catch (err) {
-      console.error("Failed to update budget", err)
-    }
-  }
-
-  const formatCur = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(val)
-
-  const filteredExpenses = filterCategory === 'All' 
-    ? expenses 
-    : expenses.filter(e => e.category === filterCategory)
+  const formatCur = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val)
 
   const chartData = [...expenses].reverse().map(e => ({
     date: new Date(e.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
     amount: e.amount
   }))
 
+  const categoryColors = ['#4C51BF', '#EA73FB', '#B8FFBB', '#FFD93D', '#6C63FF', '#FF716C', '#4ECDC4', '#F093FB']
+  const categories = (() => {
+    const grouped = {}
+    expenses.forEach(e => {
+      const cat = e.category || 'Uncategorized'
+      grouped[cat] = (grouped[cat] || 0) + e.amount
+    })
+    return Object.entries(grouped)
+      .map(([name, spent], i) => ({ name, spent, color: categoryColors[i % categoryColors.length] }))
+      .sort((a, b) => b.spent - a.spent)
+  })()
+
   return (
-    <div className="dashboard-grid">
-      {/* Left Column: Form & Recent */}
-      <div className="glass-card">
-        <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--surface-border)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
-          <button
-            type="button"
-            className="btn"
-            style={{ flex: 1, background: activeTab === 'manual' ? 'linear-gradient(135deg, var(--primary), var(--secondary))' : 'rgba(255,255,255,0.05)', color: activeTab === 'manual' ? 'white' : 'var(--text-secondary)' }}
-            onClick={() => setActiveTab('manual')}>
-            <PlusCircle size={18} /> Manual Expense
+    <div className="dashboard-layout">
+      <section className="balance-section">
+        <p className="balance-label">Total Available Balance</p>
+        <h2 className="display-lg">{formatCur(remainingBudget)}</h2>
+        <div className="action-row">
+          <button className="btn-primary" style={{ flex: 1 }} onClick={() => setActiveTab('manual')}>
+            <ArrowUpRight size={20} /> Transfer
           </button>
-          <button
-            type="button"
-            className="btn"
-            style={{ flex: 1, background: activeTab === 'upi' ? 'linear-gradient(135deg, var(--primary), var(--secondary))' : 'rgba(255,255,255,0.05)', color: activeTab === 'upi' ? 'white' : 'var(--text-secondary)' }}
-            onClick={() => setActiveTab('upi')}>
-            <Wallet size={18} /> Make UPI Payment
+          <button className="btn-secondary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }} onClick={() => setActiveTab('upi')}>
+            <Zap size={20} color="var(--primary)" /> Quick Pay
           </button>
         </div>
+      </section>
 
-        {activeTab === 'manual' ? (
-          <form onSubmit={handleManualSubmit}>
-            <div className="form-group">
-              <label>Amount (₹)</label>
-              <input type="number" step="0.01" className="input-field" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} />
+      <div className="dashboard-grid">
+        <div>
+          <div className="glass-card">
+            <h3 className="headline-md">Monthly Progress</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <span className="text-sub">Planned Spending</span>
+              <span style={{ fontWeight: 700 }}>{formatCur(thisMonthSpent)} / {formatCur(effectiveBudget)}</span>
             </div>
-            <div className="form-group">
-              <label>Description</label>
-              <input type="text" className="input-field" placeholder="E.g., Dinner at Mario's" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} required />
+            <div style={{ height: '8px', background: 'var(--surface-highest)', borderRadius: '4px', overflow: 'hidden' }}>
+              <div style={{ width: `${thisMonthSpent > 0 ? Math.min(100, (thisMonthSpent/effectiveBudget)*100) : 0}%`, height: '100%', background: 'var(--primary-gradient)' }}></div>
             </div>
-            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem', background: 'rgba(239, 68, 68, 0.1)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
-              <input type="checkbox" id="urgentCheck" checked={form.is_urgent} onChange={e => setForm({ ...form, is_urgent: e.target.checked })} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
-              <label htmlFor="urgentCheck" style={{ margin: 0, color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <AlertTriangle size={16} color="var(--error)" />
-                Urgent (Deduct any amount over budget from next month)
-              </label>
-            </div>
-            <button type="submit" className="btn" style={{ marginTop: '1.5rem', width: '100%' }}>Save Expense</button>
-          </form>
-        ) : (
-          <form onSubmit={handleUpiSubmit}>
-            <div className="form-group" style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
-              <div style={{ flex: 1 }}>
-                <label>Payee UPI ID</label>
-                <input type="text" className="input-field" placeholder="merchantname@upi" value={form.upiId} onChange={e => setForm({ ...form, upiId: e.target.value })} required />
-              </div>
-              <button type="button" className="btn-small" onClick={() => setIsScanning(!isScanning)} style={{ height: '42px', padding: '0 1rem', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ScanLine size={18} />
-                {isScanning ? 'Cancel' : 'Scan QR'}
-              </button>
-            </div>
-            {isScanning && (
-              <div id="qr-reader" style={{ width: '100%', marginBottom: '1rem', borderRadius: '0.5rem', overflow: 'hidden', background: 'var(--surface)' }}></div>
-            )}
-            <div className="form-group">
-              <label>Amount (₹)</label>
-              <input type="number" step="0.01" className="input-field" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} required />
-            </div>
-            <div className="form-group">
-              <label>Note / Description</label>
-              <input type="text" className="input-field" placeholder="E.g., Dinner share" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} required />
-            </div>
-            <div className="form-group">
-              <label>Payment App</label>
-              <select className="input-field" value={form.upiApp} onChange={e => setForm({ ...form, upiApp: e.target.value })}>
-                <option value="generic">Any UPI App (Default)</option>
-                <option value="gpay">Google Pay (GPay)</option>
-                <option value="phonepe">PhonePe</option>
-                <option value="paytm">Paytm</option>
-                <option value="bhim">BHIM UPI</option>
-              </select>
-            </div>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '1rem', textAlign: 'center' }}>
-              Submitting will automatically log the expense into your coach and redirect you to your preferred UPI payment app to complete the transaction.
+            <p className="text-sub" style={{ marginTop: '1rem' }}>
+              {remainingBudget > 0 ? `You have ₹${remainingBudget} left for ${daysLeft} days.` : "You've reached your budget limit."}
             </p>
-            <button type="submit" className="btn" style={{ marginTop: '1rem', width: '100%', background: 'var(--success)' }}>
-              Pay Now & Log Expense
-            </button>
-          </form>
-        )}
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2.5rem', marginBottom: '1rem' }}>
-          <h2 style={{ margin: 0 }}><DollarSign size={20} /> Recent Expenses</h2>
-          <select 
-            className="input-field" 
-            style={{ width: 'auto', margin: 0, padding: '0.4rem 0.8rem', minWidth: '150px' }}
-            value={filterCategory}
-            onChange={e => setFilterCategory(e.target.value)}
-          >
-            <option value="All">All Categories</option>
-            <option value="Food & Dining">Food & Dining</option>
-            <option value="Shopping">Shopping</option>
-            <option value="Housing & Utilities">Housing & Utilities</option>
-            <option value="Transportation">Transportation</option>
-            <option value="Entertainment">Entertainment</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-        <ul className="expense-list">
-          {filteredExpenses.map(e => (
-            <li key={e.id} className="expense-item">
-              <div className="expense-info">
-                <div className="category">{e.category}</div>
-                <div className="date">{e.description} - {e.date}</div>
-              </div>
-              <div className="expense-amount">
-                {formatCur(e.amount)}
-              </div>
-            </li>
-          ))}
-          {filteredExpenses.length === 0 && (
-            <p style={{ color: 'var(--text-secondary)' }}>
-              {expenses.length === 0 ? "No expenses recorded yet." : "No expenses match this category filter."}
-            </p>
-          )}
-        </ul>
-      </div>
-
-      {/* Right Column: AI Insights & Charts */}
-      <div>
-        <div className="glass-card" style={{ marginBottom: '2rem' }}>
-          <h2><Target size={20} /> Budget & Targets</h2>
-          <div style={{ display: 'flex', alignItems: 'end', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div className="form-group" style={{ margin: 0, flex: 1 }}>
-              <label>Monthly Target Budget (₹)</label>
-              <input type="number" className="input-field" value={budgetInput} onChange={e => setBudgetInput(e.target.value)} placeholder="E.g. 50000" />
-            </div>
-            <button className="btn-small" onClick={handleUpdateBudget} style={{ height: '42px', padding: '0 1.5rem', background: 'rgba(255,255,255,0.1)' }}>Set</button>
           </div>
 
-          {profile.target_amount > 0 && (
-            <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '0.5rem', display: 'flex', gap: '1rem', justifyContent: 'space-between', border: '1px solid var(--surface-border)' }}>
-              <div>
-                <small style={{ color: 'var(--text-secondary)' }}>Remaining This Month</small>
-                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: remainingBudget > 0 ? 'var(--success)' : 'var(--error)' }}>
-                  {formatCur(remainingBudget)}
-                </div>
-              </div>
-              {profile.next_month_deduction > 0 && (
-                <div style={{ textAlign: 'right' }}>
-                  <small style={{ color: 'var(--error)' }}>Next Month Debt</small>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--error)' }}>
-                    - {formatCur(profile.next_month_deduction)}
+          <div className="card" style={{ background: 'var(--primary-gradient)', color: 'white' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+               <div>
+                 <h3 style={{ margin: 0, opacity: 0.8 }}>Projected Surplus</h3>
+                 <p style={{ fontSize: '2rem', fontWeight: 800 }}>{formatCur(remainingBudget * 0.4)}</p>
+               </div>
+               <TrendingUp size={32} />
+            </div>
+            <p style={{ marginTop: '1rem', opacity: 0.9, fontSize: '0.875rem' }}>Based on your current spending, you're on track to save this much by month end.</p>
+          </div>
+
+          <div className="glass-card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <Sparkles size={20} color="var(--primary)" style={{ animation: 'pulseGlow 2s ease-in-out infinite' }} />
+              <h3 style={{ margin: 0 }}>AI Financial Coach</h3>
+            </div>
+            <p className="text-sub" style={{ color: 'var(--text-main)', fontSize: '0.95rem' }}>
+              {insights.advice || "Analyzing your spending patterns to provide personalized advice..."}
+            </p>
+          </div>
+
+          <div className="glass-card" style={{ height: '280px' }}>
+            <h3 className="headline-md">Spending Trends</h3>
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="colorAmt" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--outline)" horizontal={false} />
+                  <XAxis dataKey="date" hide />
+                  <YAxis hide />
+                  <Tooltip 
+                    contentStyle={{ background: 'var(--surface-high)', border: 'none', borderRadius: '12px' }}
+                    itemStyle={{ color: 'var(--text-main)' }}
+                  />
+                  <Area type="monotone" dataKey="amount" stroke="var(--primary)" fillOpacity={1} fill="url(#colorAmt)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+                <p className="text-sub">No data yet</p>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <div className="glass-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ margin: 0 }}>Top Categories</h3>
+              <span className="text-sub" style={{ fontSize: '0.75rem' }}>{categories.length} categories</span>
+            </div>
+            {categories.length === 0 && <p className="text-sub">No expenses yet. Add some to see your top categories.</p>}
+            {categories.slice(0, 5).map(cat => {
+              const maxSpent = categories.length > 0 ? categories[0].spent : 1
+              return (
+                <div key={cat.name} className="category-row">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <div className="category-icon" style={{ background: `${cat.color}22`, color: cat.color }}>
+                        {getCategoryIcon(cat.name)}
+                      </div>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{cat.name}</span>
+                    </div>
+                    <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{formatCur(cat.spent)}</span>
+                  </div>
+                  <div className="category-bar-track">
+                    <div className="category-bar-fill" style={{ width: `${(cat.spent / maxSpent) * 100}%`, background: cat.color }}></div>
                   </div>
                 </div>
-              )}
-            </div>
-          )}
-        </div>
+              )
+            })}
+          </div>
 
-        <div className="glass-card" style={{ marginBottom: '2rem' }}>
-          <h2><BrainCircuit size={20} /> AI Financial Insights</h2>
-          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-            <div className="insight-metric" style={{ flex: 1 }}>
-              <div className="label">Total Spent</div>
-              <div className="value">{formatCur(insights.total_spent)}</div>
+          <div className="glass-card">
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ margin: 0 }}>Recent Activity</h3>
+              <TrendingDown size={20} className="text-sub" />
             </div>
-            <div className="insight-metric" style={{ flex: 1 }}>
-              <div className="label">Days Left</div>
-              <div className="value highlight">{daysLeft}</div>
-            </div>
-            <div className="insight-metric" style={{ flex: 1 }}>
-              <div className="label">Remaining This Month</div>
-              <div className="value" style={{ color: remainingBudget > 0 ? 'var(--success)' : 'var(--error)' }}>{formatCur(remainingBudget)}</div>
+            <div className="transaction-list">
+              {expenses.slice(0, 8).map(e => (
+                <div key={e.id} className="transaction-item" style={{ background: 'transparent', padding: '0.75rem 0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <div className="icon-box">
+                      {getCategoryIcon(e.category)}
+                    </div>
+                    <div>
+                      <p style={{ fontWeight: 700, margin: 0 }}>{e.description}</p>
+                      <p className="text-sub" style={{ margin: 0 }}>{e.category} • {new Date(e.date).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <p style={{ fontWeight: 700, color: 'var(--error)' }}>- {formatCur(e.amount)}</p>
+                </div>
+              ))}
             </div>
           </div>
-          <div className="advice-box">
-            <strong>Personalized Advice:</strong> <br />
-            {insights.advice}
-          </div>
-        </div>
-
-        <div className="glass-card" style={{ height: '350px' }}>
-          <h2><TrendingUp size={20} /> Spending Trends</h2>
-          {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
-                <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={(value) => `₹${value}`} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
-                  itemStyle={{ color: '#fff' }}
-                />
-                <Line type="monotone" dataKey="amount" stroke="#ec4899" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <p style={{ color: 'var(--text-secondary)', textAlign: 'center', marginTop: '4rem' }}>
-              Add some expenses to see your trends!
-            </p>
-          )}
         </div>
       </div>
+
+      {(activeTab === 'manual' || activeTab === 'upi') && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '500px', margin: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+              <h2 style={{ fontSize: '1.5rem' }}>{activeTab === 'manual' ? "Add Expense" : "Quick Pay"}</h2>
+              <button onClick={() => setActiveTab('')} style={{ background: 'none', border: 'none', color: 'var(--text-sub)', cursor: 'pointer', fontSize: '1.5rem' }}>✕</button>
+            </div>
+
+            <form onSubmit={activeTab === 'manual' ? handleManualSubmit : handleUpiSubmit}>
+              {activeTab === 'upi' && (
+                <div style={{ marginBottom: '1rem' }}>
+                  <label className="text-sub" style={{ display: 'block', marginBottom: '0.5rem' }}>Payee UPI ID</label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input type="text" className="input-field" placeholder="merchant@upi" value={form.upiId} onChange={e => setForm({ ...form, upiId: e.target.value })} required />
+                    <button type="button" className="btn-secondary" onClick={() => setIsScanning(!isScanning)}><ScanLine size={20} /></button>
+                  </div>
+                  {isScanning && <div id="qr-reader" style={{ marginTop: '1rem', borderRadius: '12px', overflow: 'hidden' }}></div>}
+                </div>
+              )}
+              <div style={{ marginBottom: '1rem' }}>
+                <label className="text-sub" style={{ display: 'block', marginBottom: '0.5rem' }}>Amount (₹)</label>
+                <input type="number" step="1" className="input-field" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} required />
+              </div>
+              <div style={{ marginBottom: '1rem' }}>
+                <label className="text-sub" style={{ display: 'block', marginBottom: '0.5rem' }}>Description</label>
+                <input type="text" className="input-field" placeholder="What's this for?" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} required />
+              </div>
+              <button type="submit" className="btn-primary" style={{ width: '100%', marginTop: '1rem' }}>
+                {activeTab === 'manual' ? "Save Expense" : "Pay & Log"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -23,7 +23,9 @@ def init_db():
             phone TEXT,
             email TEXT,
             is_phone_verified BOOLEAN DEFAULT 0,
-            is_email_verified BOOLEAN DEFAULT 0
+            is_email_verified BOOLEAN DEFAULT 0,
+            target_amount REAL DEFAULT 0.0,
+            next_month_deduction REAL DEFAULT 0.0
         )
     ''')
     cursor.execute('''
@@ -110,5 +112,12 @@ def set_next_month_deduction(amount: float):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     cursor.execute('UPDATE profile SET next_month_deduction = ? WHERE id = 1', (amount,))
+    conn.commit()
+    conn.close()
+
+def add_expense(amount: float, category: str, date: str, description: str):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute('INSERT INTO expenses (amount, category, date, description) VALUES (?, ?, ?, ?)', (amount, category, date, description))
     conn.commit()
     conn.close()

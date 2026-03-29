@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { CheckCircle2, ShieldCheck, Mail, Phone, User, UserCircle } from 'lucide-react'
+import { CheckCircle2, ShieldCheck, Mail, Phone, User, UserCircle, Camera, ChevronLeft } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 const API_BASE = 'http://localhost:8000'
 
 export default function Profile() {
+    const navigate = useNavigate()
     const [profile, setProfile] = useState({ name: '', photo_url: '', phone: '', email: '', is_phone_verified: false, is_email_verified: false })
     const [form, setForm] = useState({ name: '', photo_url: '', phone: '', email: '' })
     const [otpSentTo, setOtpSentTo] = useState(null)
@@ -12,7 +14,7 @@ export default function Profile() {
     const [otpCode, setOtpCode] = useState("")
     const [mockOtp, setMockOtp] = useState(null)
 
-    const fetchProfile = async () => {
+    const fetchData = async () => {
         try {
             const res = await axios.get(`${API_BASE}/profile/`)
             setProfile(res.data)
@@ -27,15 +29,13 @@ export default function Profile() {
         }
     }
 
-    useEffect(() => {
-        fetchProfile()
-    }, [])
+    useEffect(() => { fetchData() }, [])
 
     const handleUpdate = async (e) => {
         e.preventDefault()
         try {
             await axios.post(`${API_BASE}/profile/`, form)
-            fetchProfile()
+            fetchData()
             alert("Profile updated!")
         } catch (err) {
             console.error(err)
@@ -45,27 +45,20 @@ export default function Profile() {
     const handlePhotoUpload = (e) => {
         const file = e.target.files[0]
         if (file) {
-            
-            if (file.size > 2 * 1024 * 1024) {
-                alert("Please upload a picture smaller than 2MB")
-                return
-            }
+            if (file.size > 2 * 1024 * 1024) return alert("File too large (max 2MB)")
             const reader = new FileReader()
-            reader.onloadend = () => {
-                setForm({ ...form, photo_url: reader.result })
-            }
+            reader.onloadend = () => setForm({ ...form, photo_url: reader.result })
             reader.readAsDataURL(file)
         }
     }
 
     const sendOtp = async (contact, type) => {
-        if (!contact) return alert(`Please enter and save a valid ${type} before verifying.`)
+        if (!contact) return alert(`Please enter and save a valid ${type}`)
         try {
             const res = await axios.post(`${API_BASE}/send-otp/`, { contact, type })
             setOtpSentTo(contact)
             setOtpType(type)
             setMockOtp(res.data.mock_otp)
-            alert(`OTP sent to ${contact}!`)
         } catch (err) {
             console.error(err)
         }
@@ -75,100 +68,94 @@ export default function Profile() {
         if (!otpCode) return
         try {
             await axios.post(`${API_BASE}/verify-otp/`, { contact: otpSentTo, type: otpType, otp: otpCode })
-            alert("Verification successful!")
             setOtpSentTo(null)
             setOtpCode("")
-            setMockOtp(null)
-            fetchProfile()
+            fetchData()
         } catch (err) {
             alert("Invalid OTP")
-            console.error(err)
         }
     }
 
     return (
-        <div className="glass-card" style={{ maxWidth: '600px', margin: '0 auto', padding: '2rem' }}>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '2rem' }}>
-                <ShieldCheck size={24} color="var(--primary)" /> Profile & Security Settings
-            </h2>
-
-            <form onSubmit={handleUpdate} style={{ marginBottom: '2rem' }}>
-
-                {}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '2rem' }}>
-                    {form.photo_url ? (
-                        <img src={form.photo_url} alt="Profile" style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary)' }} />
-                    ) : (
-                        <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <UserCircle size={40} color="var(--text-secondary)" />
-                        </div>
-                    )}
-                    <div>
-                        <label style={{ display: 'inline-block', fontSize: '0.875rem', color: 'white', cursor: 'pointer', fontWeight: 600, background: 'var(--primary)', padding: '0.5rem 1.25rem', borderRadius: '0.5rem', transition: 'opacity 0.2s' }} onMouseOver={e => e.target.style.opacity = 0.9} onMouseOut={e => e.target.style.opacity = 1}>
-                            Upload Photo
-                            <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} />
-                        </label>
-                    </div>
-                </div>
-
-                <div className="form-group">
-                    <label><User size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Full Name</label>
-                    <input type="text" className="input-field" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Jane Doe" />
-                </div>
-
-                <div className="form-group">
-                    <label><Phone size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Phone Number</label>
-                    <input type="tel" className="input-field" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="+91 99999 00000" />
-                </div>
-
-                <div className="form-group">
-                    <label><Mail size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Email Address</label>
-                    <input type="email" className="input-field" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="user@example.com" />
-                </div>
-
-                <button type="submit" className="btn" style={{ marginTop: '1rem' }}>
-                    Save Contact Info
+        <div className="profile-page">
+            <header style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+                <button onClick={() => navigate(-1)} style={{ background: 'var(--surface-high)', border: 'none', color: 'var(--text-main)', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                    <ChevronLeft size={20} />
                 </button>
+                <h2 style={{ margin: 0 }}>Profile & Security</h2>
+            </header>
+
+            <form onSubmit={handleUpdate}>
+                <div style={{ position: 'relative', width: '100px', height: '100px', margin: '0 auto 2.5rem' }}>
+                    <div style={{ width: '100px', height: '100px', borderRadius: '50%', overflow: 'hidden', background: 'var(--surface-high)', border: '2px solid var(--primary)' }}>
+                        {form.photo_url ? (
+                            <img src={form.photo_url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <UserCircle size={60} color="var(--text-sub)" />
+                            </div>
+                        )}
+                    </div>
+                    <label style={{ position: 'absolute', bottom: 0, right: 0, background: 'var(--primary)', color: 'white', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '2px solid var(--bg)' }}>
+                        <Camera size={16} />
+                        <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} />
+                    </label>
+                </div>
+
+                <div className="glass-card">
+                   <h3 className="headline-md" style={{ fontSize: '1rem', color: 'var(--text-sub)' }}>Personal Information</h3>
+                   <div style={{ marginBottom: '1.25rem' }}>
+                        <label className="text-sub" style={{ display: 'block', marginBottom: '0.5rem' }}>Full Name</label>
+                        <input type="text" className="input-field" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Jane Doe" />
+                   </div>
+                   <div style={{ marginBottom: '1.25rem' }}>
+                        <label className="text-sub" style={{ display: 'block', marginBottom: '0.5rem' }}>Phone Number</label>
+                        <input type="tel" className="input-field" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="+91 99999 00000" />
+                   </div>
+                   <div style={{ marginBottom: '1.25rem' }}>
+                        <label className="text-sub" style={{ display: 'block', marginBottom: '0.5rem' }}>Email Address</label>
+                        <input type="email" className="input-field" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="jane@example.com" />
+                   </div>
+                   <button type="submit" className="btn-primary" style={{ width: '100%', marginTop: '0.5rem' }}>Save Changes</button>
+                </div>
             </form>
 
-            {}
-            <div style={{ paddingTop: '1rem', borderTop: '1px solid var(--surface-border)' }}>
-                <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem', color: 'var(--text-secondary)' }}>Account Verification</h3>
-
-                <div className="verification-row">
-                    <span style={{ fontSize: '0.95rem' }}><strong>Phone:</strong> {profile.phone || 'Not provided'}</span>
+            <div className="glass-card">
+                <h3 className="headline-md" style={{ fontSize: '1rem', color: 'var(--text-sub)' }}>Account Verification</h3>
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 0', borderBottom: '1px solid var(--outline)' }}>
+                    <div>
+                        <p style={{ margin: 0, fontWeight: 600 }}>Phone Verification</p>
+                        <p className="text-sub" style={{ margin: 0 }}>{profile.phone || "Not set"}</p>
+                    </div>
                     {profile.is_phone_verified ? (
-                        <span className="status-verified"><CheckCircle2 size={18} /> Verified</span>
+                        <div style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}><CheckCircle2 size={18} /> Verified</div>
                     ) : (
-                        <button type="button" className="btn-small" onClick={() => sendOtp(profile.phone, 'phone')} disabled={!profile.phone}>
-                            Verify Phone
-                        </button>
+                        <button className="btn-secondary" onClick={() => sendOtp(profile.phone, 'phone')} disabled={!profile.phone}>Verify</button>
                     )}
                 </div>
 
-                <div className="verification-row" style={{ marginTop: '1rem' }}>
-                    <span style={{ fontSize: '0.95rem' }}><strong>Email:</strong> {profile.email || 'Not provided'}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 0' }}>
+                    <div>
+                        <p style={{ margin: 0, fontWeight: 600 }}>Email Verification</p>
+                        <p className="text-sub" style={{ margin: 0 }}>{profile.email || "Not set"}</p>
+                    </div>
                     {profile.is_email_verified ? (
-                        <span className="status-verified"><CheckCircle2 size={18} /> Verified</span>
+                        <div style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}><CheckCircle2 size={18} /> Verified</div>
                     ) : (
-                        <button type="button" className="btn-small" onClick={() => sendOtp(profile.email, 'email')} disabled={!profile.email}>
-                            Verify Email
-                        </button>
+                        <button className="btn-secondary" onClick={() => sendOtp(profile.email, 'email')} disabled={!profile.email}>Verify</button>
                     )}
                 </div>
 
                 {otpSentTo && (
-                    <div className="otp-box">
-                        <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Enter OTP</h4>
-                        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                            We've sent a 6-digit code to <strong>{otpSentTo}</strong>.
-                            <br /><small style={{ color: 'var(--warning)' }}>(Demo Mode - Active Mock OTP: {mockOtp})</small>
-                        </p>
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <input type="text" className="input-field" value={otpCode} onChange={e => setOtpCode(e.target.value)} placeholder="000000" maxLength={6} style={{ maxWidth: '120px', letterSpacing: '2px', textAlign: 'center', fontWeight: 'bold' }} />
-                            <button type="button" className="btn" onClick={verifyOtp} style={{ flex: 1 }}>Confirm</button>
+                    <div style={{ marginTop: '1.5rem', padding: '1.5rem', background: 'var(--surface-high)', borderRadius: 'var(--radius-lg)', border: '1px dashed var(--primary)' }}>
+                        <h4 style={{ margin: '0 0 1rem 0' }}>Verification Code</h4>
+                        <p className="text-sub" style={{ marginBottom: '1rem' }}>Sent to {otpSentTo}. <br/><span style={{ color: 'var(--primary)' }}>Mock OTP: {mockOtp}</span></p>
+                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                            <input type="text" className="input-field" value={otpCode} onChange={e => setOtpCode(e.target.value)} placeholder="000000" maxLength={6} style={{ textAlign: 'center', fontSize: '1.25rem', fontWeight: 800, letterSpacing: '4px' }} />
+                            <button className="btn-primary" onClick={verifyOtp}>Confirm</button>
                         </div>
-                        <button type="button" onClick={() => setOtpSentTo(null)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', textDecoration: 'underline', marginTop: '1rem', cursor: 'pointer', fontSize: '0.85rem' }}>Cancel</button>
+                        <button onClick={() => setOtpSentTo(null)} style={{ background: 'none', border: 'none', color: 'var(--text-sub)', marginTop: '1rem', textDecoration: 'underline', cursor: 'pointer' }}>Cancel</button>
                     </div>
                 )}
             </div>
