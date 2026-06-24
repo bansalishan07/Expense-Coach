@@ -120,9 +120,9 @@ export default function Insights() {
         </div>
       </header>
 
-      <div className="health-score-card">
+      <div className="health-score-card" style={{ position: 'relative', overflow: 'hidden' }}>
         <div className="score-ring-container">
-          <svg width="150" height="150" viewBox="0 0 150 150">
+          <svg width="150" height="150" viewBox="0 0 150 150" className="neon-circle">
             <circle cx="75" cy="75" r="60" fill="none" stroke="rgba(69, 72, 79, 0.15)" strokeWidth="10" />
             <circle
               cx="75" cy="75" r="60" fill="none"
@@ -135,15 +135,15 @@ export default function Insights() {
             />
             <defs>
               <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#4C51BF" />
-                <stop offset="100%" stopColor="#97A9FF" />
+                <stop offset="0%" stopColor="var(--primary-deep)" />
+                <stop offset="100%" stopColor="var(--primary)" />
               </linearGradient>
             </defs>
-            <text x="75" y="70" textAnchor="middle" fill="var(--text-main)" fontSize="32" fontWeight="800" fontFamily="'Plus Jakarta Sans', sans-serif">
+            <text x="75" y="78" textAnchor="middle" fill="var(--text-main)" fontSize="36" fontWeight="800" fontFamily="'Plus Jakarta Sans', sans-serif">
               {Math.round(healthScore)}
             </text>
-            <text x="75" y="90" textAnchor="middle" fill="var(--text-sub)" fontSize="11" fontWeight="500">
-              / 100
+            <text x="75" y="98" textAnchor="middle" fill="var(--text-sub)" fontSize="10" fontWeight="700" letterSpacing="0.1em">
+              HEALTH
             </text>
           </svg>
         </div>
@@ -160,7 +160,7 @@ export default function Insights() {
       </h3>
       <div className="recommendations-grid">
         {recommendations.map((rec, i) => (
-          <div key={i} className="recommendation-card">
+          <div key={i} className="recommendation-card" style={{ transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
             <div className="rec-icon" style={{ color: rec.accent, background: `${rec.accent}15` }}>
               {rec.icon}
             </div>
@@ -189,7 +189,18 @@ export default function Insights() {
               <LineChart data={weeklyTrend}>
                 <Line type="monotone" dataKey="amount" stroke="#97A9FF" strokeWidth={2} dot={{ fill: '#97A9FF', r: 4 }} />
                 <XAxis dataKey="week" tick={{ fill: 'var(--text-sub)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ background: 'var(--surface-high)', border: 'none', borderRadius: '12px', fontSize: '0.85rem' }} />
+                <Tooltip 
+                  formatter={(value) => formatCur(value)}
+                  contentStyle={{ 
+                    background: 'rgba(28, 32, 40, 0.85)', 
+                    backdropFilter: 'blur(10px)', 
+                    border: '1px solid rgba(255, 255, 255, 0.08)', 
+                    borderRadius: '12px',
+                    fontSize: '11px',
+                    color: 'var(--text-main)',
+                    padding: '4px 8px'
+                  }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -202,7 +213,7 @@ export default function Insights() {
             <AlertTriangle size={18} style={{ color: '#FF6E84' }} /> Budget Alerts
           </h3>
           {overspendingCategories.map((cat, i) => (
-            <div key={i} className="alert-card">
+            <div key={i} className="alert-card" style={{ boxShadow: '0 4px 15px rgba(255, 110, 132, 0.1)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                 <AlertTriangle size={18} style={{ color: '#FF6E84' }} />
                 <div>
@@ -220,19 +231,27 @@ export default function Insights() {
       <h3 className="section-title">
         <Zap size={18} style={{ color: '#97A9FF' }} /> Monthly Comparison
       </h3>
-      <div className="glass-card" style={{ height: 200 }}>
+      <div className="glass-card" style={{ height: 200, overflow: 'hidden' }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={comparisonData} barSize={40}>
             <XAxis dataKey="name" tick={{ fill: 'var(--text-sub)', fontSize: 12 }} axisLine={false} tickLine={false} />
             <YAxis hide />
             <Tooltip
-              contentStyle={{ background: 'var(--surface-high)', border: 'none', borderRadius: '12px' }}
-              itemStyle={{ color: 'var(--text-main)' }}
               formatter={(value) => formatCur(value)}
+              contentStyle={{ 
+                background: 'rgba(28, 32, 40, 0.85)', 
+                backdropFilter: 'blur(10px)', 
+                border: '1px solid rgba(255, 255, 255, 0.08)', 
+                borderRadius: '12px',
+                fontSize: '11px',
+                color: 'var(--text-main)',
+                padding: '4px 8px'
+              }}
+              itemStyle={{ color: 'var(--text-main)' }}
             />
             <Bar dataKey="amount" radius={[8, 8, 0, 0]}>
               {comparisonData.map((entry, index) => (
-                <Cell key={index} fill={index === 0 ? '#45484F' : '#97A9FF'} />
+                <Cell key={index} fill={index === 0 ? 'var(--surface-bright)' : 'var(--primary)'} />
               ))}
             </Bar>
           </BarChart>

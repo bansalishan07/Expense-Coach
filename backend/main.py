@@ -4,10 +4,14 @@ from pydantic import BaseModel
 from typing import List
 import database
 import ai_engine
+import chat_bot
 import random
 import datetime
+from dotenv import load_dotenv
 
-app = FastAPI(title="AI Expense & Saving Coach API")
+load_dotenv()
+
+app = FastAPI(title="Expense Advisor API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -53,7 +57,7 @@ class OTPVerify(BaseModel):
 
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to AI Expense & Saving Coach API"}
+    return {"message": "Welcome to Expense Advisor API"}
 
 @app.post("/budget/")
 def update_budget(budget: BudgetUpdate):
@@ -135,3 +139,15 @@ def verify_otp(req: OTPVerify):
         return {"message": "Verification successful!"}
     else:
         raise HTTPException(status_code=400, detail="Invalid OTP")
+
+class ChatRequest(BaseModel):
+    message: str
+
+@app.post("/chat/")
+def chat_coach(req: ChatRequest):
+    try:
+        res = chat_bot.generate_response(req.message)
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+

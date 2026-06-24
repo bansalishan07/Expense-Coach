@@ -51,6 +51,14 @@ export default function Dashboard() {
   const [confirmDialog, setConfirmDialog] = useState(null)
   const [showAppPicker, setShowAppPicker] = useState(false)
 
+  const getGreeting = () => {
+    const hour = new Date().getHours()
+    if (hour < 12) return 'Good Morning'
+    if (hour < 17) return 'Good Afternoon'
+    if (hour < 22) return 'Good Evening'
+    return 'Good Night'
+  }
+
   useEffect(() => {
     if (isScanning) {
       const scanner = new Html5QrcodeScanner('qr-reader', { fps: 10, qrbox: { width: 250, height: 250 } }, false)
@@ -192,7 +200,16 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard-layout">
-      <section className="balance-section">
+      <div className="dashboard-greeting-sec" style={{ animation: 'fadeInUp 0.4s ease forwards' }}>
+        <p className="greeting-sub" style={{ textTransform: 'uppercase', letterSpacing: '0.12em', fontSize: '0.7rem', fontWeight: 700, marginBottom: '0.25rem', color: 'var(--text-sub)' }}>
+          {getGreeting()}
+        </p>
+        <h2 className="greeting-main" style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em', marginBottom: '1.5rem' }}>
+          {profile.name ? `Hello, ${profile.name.split(' ')[0]} 👋` : "Your portfolio is growing steadily"}
+        </h2>
+      </div>
+
+      <section className="balance-section balance-card-premium">
         <p className="balance-label">Total Available Balance</p>
         <h2 className="display-lg">{formatCur(remainingBudget)}</h2>
         <div className="action-row">
@@ -215,8 +232,8 @@ export default function Dashboard() {
                 {effectiveBudget > 0 ? `${formatCur(thisMonthSpent)} / ${formatCur(effectiveBudget)}` : formatCur(thisMonthSpent)}
               </span>
             </div>
-            <div style={{ height: '8px', background: 'var(--surface-highest)', borderRadius: '4px', overflow: 'hidden' }}>
-              <div style={{ width: `${effectiveBudget > 0 && thisMonthSpent > 0 ? Math.min(100, (thisMonthSpent/effectiveBudget)*100) : 0}%`, height: '100%', background: 'var(--primary-gradient)' }}></div>
+            <div className="progress-premium-track">
+              <div className="progress-premium-fill" style={{ width: `${effectiveBudget > 0 && thisMonthSpent > 0 ? Math.min(100, (thisMonthSpent/effectiveBudget)*100) : 0}%` }}></div>
             </div>
             <p className="text-sub" style={{ marginTop: '1rem' }}>
               {effectiveBudget > 0 
@@ -226,7 +243,7 @@ export default function Dashboard() {
           </div>
 
           {effectiveBudget > 0 && (
-            <div className="card" style={{ background: 'var(--primary-gradient)', color: 'white' }}>
+            <div className="card" style={{ background: 'linear-gradient(135deg, #4C51BF, #667EEA, #5A4FCF)', color: 'white', border: 'none' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                  <div>
                    <h3 style={{ margin: 0, opacity: 0.9, fontSize: '1rem' }}>Estimated Monthly Savings</h3>
@@ -250,7 +267,7 @@ export default function Dashboard() {
             </p>
           </div>
 
-          <div className="glass-card" style={{ height: '280px' }}>
+          <div className="glass-card" style={{ height: '280px', overflow: 'hidden' }}>
             <h3 className="headline-md">Spending Trends</h3>
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -265,8 +282,17 @@ export default function Dashboard() {
                   <XAxis dataKey="date" hide />
                   <YAxis hide />
                   <Tooltip 
-                    contentStyle={{ background: 'var(--surface-high)', border: 'none', borderRadius: '12px' }}
+                    contentStyle={{ 
+                      background: 'rgba(28, 32, 40, 0.85)', 
+                      backdropFilter: 'blur(10px)', 
+                      border: '1px solid rgba(255, 255, 255, 0.08)', 
+                      borderRadius: '16px',
+                      boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
+                      color: 'var(--text-main)',
+                      padding: '10px 14px'
+                    }}
                     itemStyle={{ color: 'var(--text-main)' }}
+                    labelStyle={{ color: 'var(--text-sub)', fontSize: '11px', fontWeight: 600 }}
                   />
                   <Area type="monotone" dataKey="amount" stroke="var(--primary)" fillOpacity={1} fill="url(#colorAmt)" strokeWidth={2} />
                 </AreaChart>

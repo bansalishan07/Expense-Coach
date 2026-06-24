@@ -5,6 +5,7 @@ import Dashboard from './Dashboard'
 import Expenses from './Expenses'
 import Insights from './Insights'
 import Profile from './Profile'
+import AIChatBubble from './AIChatBubble'
 import './index.css'
 
 export default function App() {
@@ -20,12 +21,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <div className="app-container">
-        <button className="theme-toggle" onClick={toggleTheme} title="Toggle Theme">
-          {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-        </button>
-
-        <header className="header-professional" style={{ marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+        <header className="app-header">
+          <div className="app-header-logo">
             <div className="logo-container" style={{ position: 'relative', width: '32px', height: '32px' }}>
               <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 0 8px var(--primary))' }}>
                 <circle cx="50" cy="50" r="45" fill="none" stroke="var(--primary)" strokeWidth="2" strokeDasharray="10 5" />
@@ -35,11 +32,17 @@ export default function App() {
                 <path d="M40 40 Q50 30 60 40 T80 40" fill="none" stroke="var(--tertiary)" strokeWidth="3" opacity="0.8" />
               </svg>
             </div>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>Expense coach</h1>
+            <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em', margin: 0 }}>Expense Advisor</h1>
           </div>
-          <p className="text-sub" style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '1.5rem', maxWidth: '300px' }}>
-            Your portfolio is <span style={{ color: 'var(--primary)' }}>growing steadily.</span>
-          </p>
+          <div className="app-header-actions">
+            <button className="header-action-btn" onClick={toggleTheme} title="Toggle Theme">
+              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+            <button className="header-action-btn" title="Notifications">
+              <span className="notification-dot"></span>
+              <span style={{ fontSize: '18px', fontWeight: 600 }}>🔔</span>
+            </button>
+          </div>
         </header>
 
         <main>
@@ -69,6 +72,7 @@ export default function App() {
             <span>Profile</span>
           </NavLink>
         </nav>
+        <AIChatBubble />
       </div>
     </BrowserRouter>
   )

@@ -156,27 +156,27 @@ export default function Profile() {
             <div className="glass-card">
                 <h3 className="headline-md" style={{ fontSize: '1rem', color: 'var(--text-sub)' }}>Account Verification</h3>
                 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 0', borderBottom: '1px solid var(--outline)' }}>
+                <div className="verification-card-row">
                     <div>
                         <p style={{ margin: 0, fontWeight: 600 }}>Phone Verification</p>
-                        <p className="text-sub" style={{ margin: 0 }}>{profile.phone || "Not set"}</p>
+                        <p className="text-sub" style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem' }}>{profile.phone || "Not set"}</p>
                     </div>
                     {profile.is_phone_verified ? (
                         <div style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}><CheckCircle2 size={18} /> Verified</div>
                     ) : (
-                        <button className="btn-secondary" onClick={() => sendOtp(profile.phone, 'phone')} disabled={!profile.phone}>Verify</button>
+                        <button className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }} onClick={() => sendOtp(profile.phone, 'phone')} disabled={!profile.phone}>Verify</button>
                     )}
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 0' }}>
+                <div className="verification-card-row">
                     <div>
                         <p style={{ margin: 0, fontWeight: 600 }}>Email Verification</p>
-                        <p className="text-sub" style={{ margin: 0 }}>{profile.email || "Not set"}</p>
+                        <p className="text-sub" style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem' }}>{profile.email || "Not set"}</p>
                     </div>
                     {profile.is_email_verified ? (
                         <div style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}><CheckCircle2 size={18} /> Verified</div>
                     ) : (
-                        <button className="btn-secondary" onClick={() => sendOtp(profile.email, 'email')} disabled={!profile.email}>Verify</button>
+                        <button className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }} onClick={() => sendOtp(profile.email, 'email')} disabled={!profile.email}>Verify</button>
                     )}
                 </div>
 

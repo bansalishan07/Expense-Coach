@@ -164,11 +164,11 @@ export default function Expenses() {
         </button>
       </header>
 
-      <div className="summary-card-glass">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="summary-card-glass balance-card-premium" style={{ position: 'relative', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10, position: 'relative' }}>
           <div>
-            <p className="text-sub" style={{ marginBottom: '0.25rem', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Total Spent This Month</p>
-            <h2 className="display-lg" style={{ fontSize: '2rem' }}>{formatCur(thisMonthSpent)}</h2>
+            <p className="text-sub" style={{ marginBottom: '0.25rem', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 700 }}>Total Spent This Month</p>
+            <h2 className="display-lg" style={{ fontSize: '2.25rem', background: 'var(--primary-gradient-vivid)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: '0.25rem 0' }}>{formatCur(thisMonthSpent)}</h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem' }}>
               {Number(changePercent) <= 0 ? (
                 <TrendingDown size={16} style={{ color: '#7BE0D3' }} />
@@ -184,7 +184,19 @@ export default function Expenses() {
             <div style={{ width: 100, height: 100 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={categoryData} innerRadius={30} outerRadius={45} dataKey="value" stroke="none">
+                  <Tooltip 
+                    formatter={(value) => formatCur(value)}
+                    contentStyle={{ 
+                      background: 'rgba(28, 32, 40, 0.85)', 
+                      backdropFilter: 'blur(10px)', 
+                      border: '1px solid rgba(255, 255, 255, 0.08)', 
+                      borderRadius: '12px',
+                      fontSize: '11px',
+                      color: 'var(--text-main)',
+                      padding: '4px 8px'
+                    }}
+                  />
+                  <Pie data={categoryData} innerRadius={28} outerRadius={42} dataKey="value" stroke="none">
                     {categoryData.map((entry, index) => (
                       <Cell key={index} fill={entry.color} />
                     ))}
@@ -213,7 +225,7 @@ export default function Expenses() {
       <div className="expense-list">
         {filteredExpenses.length === 0 && (
           <div className="empty-state">
-            <Calendar size={48} style={{ color: 'var(--text-sub)', marginBottom: '1rem' }} />
+            <Calendar size={48} style={{ color: 'var(--text-sub)', marginBottom: '1rem', animation: 'pulseGlow 3s ease-in-out infinite' }} />
             <p className="text-sub">No expenses found. Tap + to add one.</p>
           </div>
         )}
@@ -233,7 +245,7 @@ export default function Expenses() {
         ))}
       </div>
 
-      <button className="fab" onClick={() => setShowAddModal(true)}>
+      <button className="fab" onClick={() => setShowAddModal(true)} style={{ background: 'linear-gradient(135deg, #4C51BF, #667EEA, #EA73FB)', border: '1px solid rgba(255,255,255,0.15)' }}>
         <PlusCircle size={28} />
       </button>
 
@@ -262,7 +274,7 @@ export default function Expenses() {
       )}
 
       {toast && (
-        <div style={{ position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)', background: 'var(--surface-highest)', color: 'var(--text-main)', padding: '0.75rem 1.5rem', borderRadius: '2rem', zIndex: 3000, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap' }}>
+        <div style={{ position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)', background: 'var(--glass)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', color: 'var(--text-main)', padding: '0.85rem 1.75rem', borderRadius: '2rem', zIndex: 3000, boxShadow: '0 8px 25px rgba(0,0,0,0.4)', border: '1px solid var(--ghost-border)', fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap' }}>
           {toast}
         </div>
       )}

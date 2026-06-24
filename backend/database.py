@@ -121,3 +121,29 @@ def add_expense(amount: float, category: str, date: str, description: str):
     cursor.execute('INSERT INTO expenses (amount, category, date, description) VALUES (?, ?, ?, ?)', (amount, category, date, description))
     conn.commit()
     conn.close()
+
+def execute_raw_select_query(query: str, params: tuple = ()) -> List[Dict[str, Any]]:
+    import re
+    cleaned = query.strip().replace('\n', ' ').replace('\r', ' ')
+    cleaned_lower = cleaned.lower()
+    
+    if not cleaned_lower.startswith("select"):
+        raise ValueError("Only SELECT queries are allowed for security reasons.")
+        
+    forbidden = ["insert", "update", "delete", "drop", "alter", "create", "replace", "truncate", "vacuum", "pragma"]
+    for word in forbidden:
+        pattern = r'\b' + re.escape(word) + r'\b'
+        if re.search(pattern, cleaned_lower):
+            raise ValueError(f"Query contains forbidden keyword: '{word}'")
+            
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    try:
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        result = [dict(row) for row in rows]
+    finally:
+        conn.close()
+    return result
+
