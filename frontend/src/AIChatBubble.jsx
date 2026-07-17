@@ -3,7 +3,7 @@ import { Sparkles, Send, X, MessageSquare } from 'lucide-react'
 import axios from 'axios'
 import './AIChatBubble.css'
 
-const API_BASE = 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const PRESET_QUESTIONS = [
   { text: "📊 Category Breakdown", query: "Where did I spend the most?" },

@@ -20,7 +20,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Cell } from 'recharts'
 import './index.css'
 
-const API_BASE = 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const categoryColors = ['#97A9FF', '#EA73FB', '#7BE0D3', '#FFD93D', '#6C63FF', '#FF716C']
 

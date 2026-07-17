@@ -19,7 +19,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 import { Html5QrcodeScanner } from 'html5-qrcode'
 import './index.css'
 
-const API_BASE = 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const getCategoryIcon = (category) => {
   switch (category) {
