@@ -1,26 +1,60 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
 import { LayoutDashboard, UserCircle, Moon, Sun, WalletCards, Sparkles } from 'lucide-react'
+import axios from 'axios'
 import Dashboard from './Dashboard'
 import Expenses from './Expenses'
 import Insights from './Insights'
 import Profile from './Profile'
 import AIChatBubble from './AIChatBubble'
+import Onboarding from './Onboarding'
 import './index.css'
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark')
+  const [profileLoaded, setProfileLoaded] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem('theme', theme)
   }, [theme])
 
+  useEffect(() => {
+    const checkProfile = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/profile/`)
+        if (!res.data.name) {
+          setShowOnboarding(true)
+        }
+      } catch {
+        setShowOnboarding(true)
+      }
+      setProfileLoaded(true)
+    }
+    checkProfile()
+  }, [])
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false)
+  }
+
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark')
+
+  if (!profileLoaded) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg)' }}>
+        <div className="onboarding-spinner" style={{ width: '32px', height: '32px' }}></div>
+      </div>
+    )
+  }
 
   return (
     <BrowserRouter>
       <div className="app-container">
+        {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
         <header className="app-header">
           <div className="app-header-logo">
             <div className="logo-container" style={{ position: 'relative', width: '32px', height: '32px' }}>

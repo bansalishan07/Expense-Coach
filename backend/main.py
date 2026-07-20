@@ -43,8 +43,8 @@ class BudgetUpdate(BaseModel):
 class ProfileUpdate(BaseModel):
     name: str = ""
     photo_url: str = ""
-    phone: str
-    email: str
+    phone: str = ""
+    email: str = ""
 
 class OTPSend(BaseModel):
     contact: str

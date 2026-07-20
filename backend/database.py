@@ -35,6 +35,8 @@ def init_db():
         )
     ''')
     conn.commit()
+    cursor.execute('INSERT OR IGNORE INTO profile (id) VALUES (1)')
+    conn.commit()
     conn.close()
 
 def get_all_expenses() -> List[Dict[str, Any]]:
